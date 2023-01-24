@@ -4,8 +4,8 @@
 // @version      1.0
 // @description  Display teams stars on blaseball.com
 // @author       You
-// @match        https://blaseball.com/
-// @grant        none
+// @match        https://blaseball.com/*
+// @match        https://www.blaseball.com/*
 // ==/UserScript==
 
 const TEAM_MAP = {
