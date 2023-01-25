@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Blaseball Bet Stars
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  Display teams stars on blaseball.com
 // @author       You
 // @match        https://blaseball.com/*
@@ -110,15 +110,18 @@ const addTeamStats = async () => {
   });
 };
 
-const createPitcherText = async (gamePitcher) => {
-  const pitcher = await getPlayer(gamePitcher);
+const createPitcherText = async (pitcher, favored) => {
   const pitcherStars = pitcher.categoryRatings.find((category) => category.name === 'pitching').stars;
   const pitcherControl = pitcher.attributes.find((attr) => attr.name === 'Control').value;
   const pitcherGuile = pitcher.attributes.find((attr) => attr.name === 'Guile').value;
   const pitcherStuff = pitcher.attributes.find((attr) => attr.name === 'Stuff').value;
   const pitcherPara = document.createElement('p');
-  pitcherPara.style.color = 'var(--team-foreground)';
   pitcherPara.style['font-weight'] = '700';
+  if (favored) {
+    pitcherPara.style.color = 'var(--team-foreground)';
+  } else {
+    pitcherPara.style.color = '#828799';
+  }
   pitcherPara.innerHTML = `${pitcher.name}: ${pitcherStars}`;
   pitcherPara.title = `Control: ${pitcherControl}, Guile: ${pitcherGuile}, Stuff: ${pitcherStuff}`;
   return pitcherPara;
@@ -139,12 +142,22 @@ const addPitcherStats = async () => {
         (game) =>
           game.data.startTime === gameTimeUtc &&
           TEAM_MAP[homeTeam] === game.data.homeTeam.id &&
-          TEAM_MAP[awayTeam] === game.data.awayTeam.id
+          TEAM_MAP[awayTeam] === game.data.awayTeam.id,
       );
 
       if (sibrInfo) {
-        const homePitcher = await createPitcherText(sibrInfo.data.homePitcher.id);
-        const awayPitcher = await createPitcherText(sibrInfo.data.awayPitcher.id);
+        const homePitcherData = await getPlayer(sibrInfo.data.homePitcher.id);
+        const awayPitcherData = await getPlayer(sibrInfo.data.awayPitcher.id);
+
+        const homeFavored =
+          +homePitcherData.categoryRatings.find((category) => category.name === 'pitching').stars >
+          +awayPitcherData.categoryRatings.find((category) => category.name === 'pitching').stars;
+        const equallyFavored =
+          +homePitcherData.categoryRatings.find((category) => category.name === 'pitching').stars ===
+          +awayPitcherData.categoryRatings.find((category) => category.name === 'pitching').stars;
+
+        const homePitcher = await createPitcherText(homePitcherData, homeFavored && !equallyFavored);
+        const awayPitcher = await createPitcherText(awayPitcherData, !homeFavored && !equallyFavored);
 
         teams[0].querySelector('div.bet-widget__info')?.append(awayPitcher);
         teams[1].querySelector('div.bet-widget__info')?.append(homePitcher);
