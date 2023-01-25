@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Blaseball Bet Stars
-// @version      1.5
+// @version      1.6
 // @description  Display teams stars on blaseball.com
 // @author       chrisw-b
 // @match        https://blaseball.com/*
@@ -12,7 +12,7 @@
 const CONFIG = {
   enableTeamStars: true,
   enablePitchers: true,
-  spilloverCount: 0,
+  spilloverCount: 1,
 };
 
 const TEAM_MAP = {
@@ -133,14 +133,24 @@ const createPitcherText = async (pitcher, favored) => {
   return pitcherPara;
 };
 
-function addHoursToDate(date, hours) {
+const addHoursToDate = (date, hours) => {
   return new Date(new Date(date).setTime(date.getTime() + hours * 60 * 60 * 1000));
-}
+};
+
+const getNextNoon = () => {
+  const nextNoon = new Date();
+  if (nextNoon.getUTCHours() >= 11) nextNoon.setUTCDate(nextNoon.getUTCDate() + 1);
+  nextNoon.setUTCHours(11, 0, 0, 0);
+  return nextNoon;
+};
 
 const getTimeUtc = (dateStr) => {
   const localDate = new Date(dateStr);
-  const spilloverDate = addHoursToDate(localDate, CONFIG.spilloverCount);
-  return spilloverDate.toISOString();
+  const spilloverDate = addHoursToDate(localDate, CONFIG.spilloverCount * -1);
+  const spilloverAdjustedDate = spilloverDate.toISOString();
+  const nextBlaseballStart = getNextNoon();
+  if (spilloverDate < nextBlaseballStart) return spilloverAdjustedDate;
+  else return localDate.toISOString();
 };
 
 const addPitcherStats = async () => {
