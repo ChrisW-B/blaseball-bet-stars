@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Blaseball Bet Stars
-// @version      1.4
+// @version      1.5
 // @description  Display teams stars on blaseball.com
 // @author       chrisw-b
 // @match        https://blaseball.com/*
@@ -12,6 +12,7 @@
 const CONFIG = {
   enableTeamStars: true,
   enablePitchers: true,
+  spilloverCount: 0,
 };
 
 const TEAM_MAP = {
@@ -70,7 +71,7 @@ const getPlayer = async (id) => {
 
   try {
     const res = await fetch(`https://api2.sibr.dev/chronicler/v0/entities?kind=player&id=${id}`);
-    json = await res.json();
+    const json = await res.json();
     savedPlayer = json.items[0].data;
   } catch (e) {
     console.warn(e);
@@ -132,12 +133,22 @@ const createPitcherText = async (pitcher, favored) => {
   return pitcherPara;
 };
 
+function addHoursToDate(date, hours) {
+  return new Date(new Date(date).setTime(date.getTime() + hours * 60 * 60 * 1000));
+}
+
+const getTimeUtc = (dateStr) => {
+  const localDate = new Date(dateStr);
+  const spilloverDate = addHoursToDate(localDate, CONFIG.spilloverCount);
+  return spilloverDate.toISOString();
+};
+
 const addPitcherStats = async () => {
   const teamNames = Object.keys(TEAM_MAP);
   const gameGroups = document.querySelectorAll('section.hour');
   const gameData = await getGameData();
   gameGroups.forEach((group) => {
-    const gameTimeUtc = new Date(group.id).toISOString();
+    const gameTimeUtc = getTimeUtc(group.id);
     const games = group.querySelectorAll('li.bet-widget__game');
     games.forEach(async (game) => {
       const teams = game.querySelectorAll('div.bet-widget__data');
