@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Blaseball Bet Stars
-// @version      1.7
+// @version      1.7.1
 // @description  Display teams stars on blaseball.com
 // @author       chrisw-b
 // @match        https://blaseball.com/*
@@ -12,7 +12,7 @@
 const CONFIG = {
   enableTeamStars: true,
   enablePitchers: true,
-  spilloverCount: 1,
+  spilloverCount: 2,
 };
 
 const TEAM_MAP = {
