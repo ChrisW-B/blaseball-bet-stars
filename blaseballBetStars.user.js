@@ -1,12 +1,18 @@
 // ==UserScript==
 // @name         Blaseball Bet Stars
-// @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  Display teams stars on blaseball.com
-// @author       You
+// @author       chrisw-b
 // @match        https://blaseball.com/*
 // @match        https://www.blaseball.com/*
+// @license MIT
+// @namespace https://greasyfork.org/users/1016522
 // ==/UserScript==
+
+const CONFIG = {
+  enableTeamStars: true,
+  enablePitchers: true,
+};
 
 const TEAM_MAP = {
   SHOE: 'bfd38797-8404-4b38-8b82-341da28b1f83',
@@ -57,15 +63,29 @@ const getGameData = async () => {
   return json.items;
 };
 
+const playerMap = new Map();
 const getPlayer = async (id) => {
-  let json = {};
+  let savedPlayer = playerMap.get(id);
+  if (savedPlayer) return savedPlayer;
+
   try {
     const res = await fetch(`https://api2.sibr.dev/chronicler/v0/entities?kind=player&id=${id}`);
     json = await res.json();
+    savedPlayer = json.items[0].data;
   } catch (e) {
     console.warn(e);
   }
-  return json.items[0].data;
+
+  playerMap.set(id, savedPlayer);
+  return savedPlayer;
+};
+
+const createStat = (name, key, teamStats) => {
+  const stat = document.createElement('p');
+  const statScore = teamStats.find((stat) => stat.name === key).stars.toFixed(3);
+  stat.innerHTML = `${name}: ${statScore}`;
+  stat.classList.add('bet-widget__record');
+  return stat;
 };
 
 const addTeamStats = async () => {
@@ -81,28 +101,13 @@ const addTeamStats = async () => {
       starGrid.style['grid-template-columns'] = 'repeat(2, 1fr)';
       starGrid.style['column-gap'] = '8px';
 
-      const batting = document.createElement('p');
-      const battingScore = teamStats.find((stat) => stat.name === 'batting').stars.toFixed(3);
-      batting.innerHTML = `Bat: ${battingScore}`;
-      batting.classList.add('bet-widget__record');
+      const batting = createStat('Bat', 'batting', teamStats);
+      const defense = createStat('Def', 'defense', teamStats);
+      const running = createStat('Run', 'running', teamStats);
+      const pitching = createStat('Pch', 'pitching', teamStats);
       starGrid.append(batting);
-
-      const defense = document.createElement('p');
-      const defenseScore = teamStats.find((stat) => stat.name === 'defense').stars.toFixed(3);
-      defense.innerHTML = `Def: ${defenseScore}`;
-      defense.classList.add('bet-widget__record');
       starGrid.append(defense);
-
-      const running = document.createElement('p');
-      const runningScore = teamStats.find((stat) => stat.name === 'running').stars.toFixed(3);
-      running.innerHTML = `Run: ${runningScore}`;
-      running.classList.add('bet-widget__record');
       starGrid.append(running);
-
-      const pitching = document.createElement('p');
-      const pitchingScore = teamStats.find((stat) => stat.name === 'pitching').stars.toFixed(3);
-      pitching.innerHTML = `Pch: ${pitchingScore}`;
-      pitching.classList.add('bet-widget__record');
       starGrid.append(pitching);
 
       entry.append(starGrid);
@@ -129,15 +134,21 @@ const createPitcherText = async (pitcher, favored) => {
 
 const addPitcherStats = async () => {
   const teamNames = Object.keys(TEAM_MAP);
-  const gameGroups = Array.from(document.querySelectorAll('section.hour'));
+  const gameGroups = document.querySelectorAll('section.hour');
   const gameData = await getGameData();
   gameGroups.forEach((group) => {
     const gameTimeUtc = new Date(group.id).toISOString();
-    const games = Array.from(group.querySelectorAll('li.bet-widget__game'));
+    const games = group.querySelectorAll('li.bet-widget__game');
     games.forEach(async (game) => {
-      const teams = Array.from(game.querySelectorAll('div.bet-widget__data'));
+      const teams = game.querySelectorAll('div.bet-widget__data');
       const awayTeam = teamNames.find((name) => teams[0].innerHTML.includes(name));
       const homeTeam = teamNames.find((name) => teams[1].innerHTML.includes(name));
+
+      const awayTeamDiv = teams[0].querySelector('div.bet-widget__info');
+      const homeTeamDiv = teams[1].querySelector('div.bet-widget__info');
+
+      if (!homeTeamDiv || !awayTeamDiv) return;
+
       const sibrInfo = gameData.find(
         (game) =>
           game.data.startTime === gameTimeUtc &&
@@ -159,8 +170,8 @@ const addPitcherStats = async () => {
         const homePitcher = await createPitcherText(homePitcherData, homeFavored && !equallyFavored);
         const awayPitcher = await createPitcherText(awayPitcherData, !homeFavored && !equallyFavored);
 
-        teams[0].querySelector('div.bet-widget__info')?.append(awayPitcher);
-        teams[1].querySelector('div.bet-widget__info')?.append(homePitcher);
+        awayTeamDiv.append(awayPitcher);
+        homeTeamDiv.append(homePitcher);
       }
     });
   });
@@ -169,8 +180,8 @@ const addPitcherStats = async () => {
 const observePlayTab = new MutationObserver(async () => {
   const isBetPage = !!document.querySelector('section.hour');
   if (isBetPage) {
-    addPitcherStats();
-    addTeamStats();
+    if (CONFIG.enablePitchers) addPitcherStats();
+    if (CONFIG.enableTeamStars) addTeamStats();
   }
 });
 
@@ -178,8 +189,8 @@ const observeMainContents = new MutationObserver(async () => {
   const isBetPage = !!document.querySelector('section.hour');
   if (isBetPage) {
     observeMainContents.disconnect();
-    addPitcherStats();
-    addTeamStats();
+    if (CONFIG.enablePitchers) addPitcherStats();
+    if (CONFIG.enableTeamStars) addTeamStats();
 
     observePlayTab.observe(document.querySelector('.playtab'), {
       childList: true,
