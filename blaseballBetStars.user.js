@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Blaseball Bet Stars
-// @version      1.6
+// @version      1.7
 // @description  Display teams stars on blaseball.com
 // @author       chrisw-b
 // @match        https://blaseball.com/*
