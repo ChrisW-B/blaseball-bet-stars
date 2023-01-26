@@ -12,7 +12,7 @@
 const CONFIG = {
   enableTeamStars: true,
   enablePitchers: true,
-  spilloverCount: 2,
+  spilloverCount: 0,
 };
 
 const TEAM_MAP = {
