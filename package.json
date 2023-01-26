@@ -1,0 +1,23 @@
+{
+  "name": "blaseballbetstars",
+  "version": "1.0.0",
+  "description": "",
+  "main": "blaseballBetStars.user.js",
+  "scripts": {
+    "prettier": "prettier --list-different \"./**/*.{ts,tsx,js,jsx,gql,html,yml,json}\" --write",
+    "prettier:check": "prettier './**/*.{ts,tsx,js,jsx,json}' -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChrisW-B/blaseball-bet-stars.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ChrisW-B/blaseball-bet-stars/issues"
+  },
+  "homepage": "https://github.com/ChrisW-B/blaseball-bet-stars#readme",
+  "devDependencies": {
+    "prettier": "^2.8.3"
+  }
+}
